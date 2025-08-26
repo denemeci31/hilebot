@@ -9,22 +9,40 @@ import os
 import shutil
 import zipfile
 
-__version__ = "6.6.6"
+__version__ = "10.5.3"
 
 MATCH_THRESH = 0.75
 
+# PyInstaller ile paketlenmiş uygulamalarda doğru dizini bulur
+def get_resource_path(relative_path):
+    try:
+        # PyInstaller ile paketlenmişse
+        base_path = sys._MEIPASS
+    except Exception:
+        # Normal Python ortamındaysa
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+def load_template(path):
+    full_path = get_resource_path(path)
+    template = cv2.imread(full_path)
+    if template is None:
+        raise FileNotFoundError(f"Could not load template: {full_path}")
+    return template
+
 TEMPLATES = {
-    "start": cv2.imread("assets/start.png"),
-    "kapi1": cv2.imread("assets/kapi1.png"),
-    "kapi2": cv2.imread("assets/kapi2.png"),
-    "health": cv2.imread("assets/health.png"),
-    "imza": cv2.imread("assets/imza.png"),
-    "s": cv2.imread("assets/s.png"),
-    "o": cv2.imread("assets/o.png"),
-    "r": cv2.imread("assets/r.png"),
-    "g": cv2.imread("assets/g.png"),
-    "u": cv2.imread("assets/u.png"),
-    "enter": cv2.imread("assets/enter.png"),
+    "start": load_template("assets/start.png"),
+    "kapi1": load_template("assets/kapi1.png"),
+    "kapi2": load_template("assets/kapi2.png"),
+    "health": load_template("assets/health.png"),
+    "imza": load_template("assets/imza.png"),
+    "s": load_template("assets/s.png"),
+    "o": load_template("assets/o.png"),
+    "r": load_template("assets/r.png"),
+    "g": load_template("assets/g.png"),
+    "u": load_template("assets/u.png"),
+    "enter": load_template("assets/enter.png"),
 }
 
 def screenshot():
