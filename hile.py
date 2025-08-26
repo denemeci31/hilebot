@@ -9,7 +9,7 @@ import os
 import shutil
 import zipfile
 
-__version__ = "1.0.2"
+__version__ = "6.6.6"
 
 MATCH_THRESH = 0.75
 
