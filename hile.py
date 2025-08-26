@@ -3,8 +3,13 @@ import cv2
 import numpy as np
 import time
 import requests
+import keyboard
+import sys
+import os
+import shutil
+import zipfile
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 
 MATCH_THRESH = 0.75
 
@@ -40,26 +45,68 @@ def click_center(x, y, w, h):
     pyautogui.click()
     time.sleep(0.3)
 
-def check_for_updates():
+def auto_update():
     try:
-        repo_url = "https://api.github.com/repos/ege/hilebot/releases/latest"
+        repo_url = "https://api.github.com/repos/denemeci31/hilebot/releases/latest"
         response = requests.get(repo_url)
+        print("[GÜNCELLEME] API yanıtı alındı.")
         response.raise_for_status()
-        latest = response.json()["tag_name"].lstrip("v")
-        if latest > __version__:
-            print(f"[GÜNCELLEME] Yeni sürüm mevcut: {latest}. Mevcut sürüm: {__version__}")
+        data = response.json()
+        latest_version = data["tag_name"].lstrip("v")
+        download_url = data["zipball_url"]
+
+        if latest_version > __version__:
+            print(f"[GÜNCELLEME] Yeni sürüm mevcut: {latest_version}")
+            ans = input("Güncelleme yapılsın mı? (e/h): ")
+            if ans.lower() == "e":
+                print("İndiriliyor...")
+                zip_path = "update.zip"
+                with requests.get(download_url, stream=True) as r:
+                    r.raise_for_status()
+                    with open(zip_path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=8192):
+                            f.write(chunk)
+
+                print("Kuruluyor...")
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall("update_temp")
+
+                # Yeni dosyaları kopyala (geçici klasörler hariç)
+                extracted_folder = os.listdir("update_temp")[0]
+                for item in os.listdir(f"update_temp/{extracted_folder}"):
+                    if item in [".git", "backup", "update_temp", "update.zip"]:
+                        continue
+                    s = os.path.join(f"update_temp/{extracted_folder}", item)
+                    d = os.path.join(".", item)
+                    if os.path.isdir(s):
+                        shutil.copytree(s, d, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(s, d)
+
+                # Temizlik
+                shutil.rmtree("update_temp")
+                os.remove(zip_path)
+
+                print("Güncelleme tamamlandı. Yeniden başlatılıyor...")
+                os.execv(sys.executable, ['python'] + sys.argv)
         else:
             print("[GÜNCELLEME] En son sürümü kullanıyorsunuz.")
     except Exception as e:
-        print("[GÜNCELLEME] Güncelleme kontrolü başarısız:", e)
+        print("[GÜNCELLEME] Otomatik güncelleme başarısız:", e)
 
 if __name__ == "__main__":
-    print("Bot başladı. ESC ile durdurabilirsiniz.")
-    check_for_updates()
+    print("Bot başladı. ALT + H ile durdurabilirsiniz.")
+    auto_update()
     time.sleep(2)
     imza_cooldown = False
 
+    print("Bot çalışıyor... Durdurmak için ALT + H tuşlarına basın.")
+
     while True:
+        if keyboard.is_pressed('alt+h'):
+            print("[BOT] Durduruldu.")
+            break
+
         frame = screenshot()
 
         # Kapılar ve start
@@ -90,7 +137,7 @@ if __name__ == "__main__":
                 imza_cooldown = False
                 print("[BOT] Sıra tıklama tamamlandı, tekrar kontrol ediliyor...")
 
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
+        time.sleep(0.1)  # küçük bekleme
 
+    print("[BOT] Program kapatılıyor...")
     cv2.destroyAllWindows()
